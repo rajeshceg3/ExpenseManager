@@ -1,0 +1,8 @@
+[requires]
+fmt/10.2.1
+date/3.0.1
+fast-cpp-csv-parser/0.1.3
+
+[generators]
+CMakeDeps
+CMakeToolchain
