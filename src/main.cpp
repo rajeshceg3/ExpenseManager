@@ -3,6 +3,7 @@
 #include <string>
 #include <limits> // Required for std::numeric_limits
 #include <cstdio> // For sscanf
+#include <stdexcept>
 
 #include "ExpenseManager.h" // Assuming ExpenseManager.h is in include/
 #include "Expense.h"        // Assuming Expense.h is in include/
@@ -25,6 +26,7 @@ void displayMenu() {
 int getIntInput() {
     int choice;
     while (!(std::cin >> choice)) {
+        if (std::cin.eof()) throw std::runtime_error("Input ended");
         fmt::print("Invalid input. Please enter a number: ");
         std::cin.clear();
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
@@ -37,6 +39,7 @@ int getIntInput() {
 double getDoubleInput() {
     double value;
     while (!(std::cin >> value)) {
+        if (std::cin.eof()) throw std::runtime_error("Input ended");
         fmt::print("Invalid input. Please enter a numeric value: ");
         std::cin.clear();
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
@@ -70,7 +73,7 @@ expense_tracker::Date getDateInput(const std::string& prompt) {
     int year = 0, month = 0, day = 0; // Initialize to invalid
     while (true) {
         fmt::print(prompt);
-        std::getline(std::cin, dateStr);
+        if (!std::getline(std::cin, dateStr)) throw std::runtime_error("Input ended");
         if (sscanf(dateStr.c_str(), "%d-%d-%d", &year, &month, &day) == 3) {
             // Basic validation, can be improved (e.g. using date library for validation)
             if (year > 0 && month >= 1 && month <= 12 && day >= 1 && day <= 31) { // Simplified validation
@@ -205,6 +208,7 @@ void handleSummarizationMenu(expense_tracker::ExpenseManager& manager) {
 }
 
 int main() {
+  try {
     expense_tracker::ExpenseManager manager;
     std::string defaultFilename = "expenses.csv";
 
@@ -253,4 +257,8 @@ int main() {
     } while (choice != 7); // Exit condition is now 7
 
     return 0;
+  } catch (const std::runtime_error& error) {
+    std::cerr << error.what() << std::endl;
+    return 1;
+  }
 }

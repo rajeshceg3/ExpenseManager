@@ -2,6 +2,8 @@
 #include <algorithm> // For std::remove_if if needed, or for sorting later
 #include <iostream>  // For viewExpensesSummary and potential error messages
 #include <fstream>   // For load/save
+#include <iomanip>
+#include <limits>
 #include <sstream>   // For parsing lines in load/save
 #include "fmt/core.h"
 #include "csv.h" // From fast-cpp-csv-parser
@@ -150,12 +152,12 @@ std::vector<Expense> ExpenseManager::getExpensesByDateRange(const Date& startDat
 // For now, dummy implementations to allow compilation:
 bool ExpenseManager::loadExpenses(const std::string& filename) {
     std::string filepath = "data/" + filename;
-    expenses_.clear(); // Clear existing expenses before loading
+    std::vector<Expense> loaded; // Commit only after every row parses.
 
     try {
         // Using CSVReader: 5 columns, trim whitespace around fields.
-        // The library handles quoted fields by default.
-        io::CSVReader<5, io::trim_chars<' '>> in(filepath);
+        // Enable double-quote escaping explicitly for writer roundtrips.
+        io::CSVReader<5, io::trim_chars<' '>, io::double_quote_escape<',', '"'>> in(filepath);
 
         // Read the header row and expect these names.
         // ignore_extra_column allows the CSV to have more columns than we read, though we expect 5.
@@ -183,16 +185,14 @@ bool ExpenseManager::loadExpenses(const std::string& filename) {
                 continue;
             }
 
-            expenses_.emplace_back(description, amount, date, category, transactionTypeVal);
+            loaded.emplace_back(description, amount, date, category, transactionTypeVal);
         }
-        // Successfully loaded (or file was empty/header-only, which is also success)
+        // Replace current state only after complete successful parsing.
+        expenses_.swap(loaded);
         return true;
     } catch (const io::error::can_not_open_file& e) {
-        // This is common on first run or if the file is legitimately missing.
-        // Treat as success for application startup, but log it.
-        std::cout << "Info: Expense file not found or could not be opened: " << filepath
-                  << ". This is normal if running for the first time or if no expenses have been saved." << std::endl;
-        return true;
+        std::cerr << "Error: Could not open expense file: " << filepath << std::endl;
+        return false;
     } catch (const io::error::header_missing& e) {
         std::cerr << "Error: CSV header missing or does not match expected format in file: " << filepath << " - " << e.what() << std::endl;
         return false; // Header mismatch is a more serious structural issue.
@@ -201,6 +201,17 @@ bool ExpenseManager::loadExpenses(const std::string& filename) {
         std::cerr << "Error: Exception while reading CSV file: " << filepath << " - " << e.what() << std::endl;
         return false;
     }
+}
+
+namespace {
+std::string csvQuote(const std::string& value) {
+    std::string result = "\"";
+    for (char c : value) {
+        if (c == '\"') result += '\"';
+        result += c;
+    }
+    return result + "\"";
+}
 }
 
 bool ExpenseManager::saveExpenses(const std::string& filename) const {
@@ -212,6 +223,8 @@ bool ExpenseManager::saveExpenses(const std::string& filename) const {
         return false;
     }
 
+    outFile << std::setprecision(std::numeric_limits<double>::max_digits10);
+
     // Write header
     outFile << "Date,Description,Amount,Category,Type\n"; // CSV header
 
@@ -219,16 +232,9 @@ bool ExpenseManager::saveExpenses(const std::string& filename) const {
         std::string dateStr = fmt::format("{}-{:02}-{:02}", exp.date.year, exp.date.month, exp.date.day);
         std::string typeStr = (exp.transaction_type == TransactionType::CREDIT) ? "Credit" : "Cash";
 
-        // Format the CSV line using fmt::format.
-        // This simple version quotes all string fields.
-        // Note: If description or category can contain actual quote characters, they would need to be escaped (e.g., "" for ").
-        // This implementation does not handle that level of CSV complexity.
-        outFile << fmt::format("\"{}\",\"{}\",{},\"{}\",\"{}\"\n",
-                               dateStr,
-                               exp.description,
-                               exp.amount,
-                               exp.category,
-                               typeStr);
+        outFile << csvQuote(dateStr) << ',' << csvQuote(exp.description) << ','
+                << exp.amount << ',' << csvQuote(exp.category) << ','
+                << csvQuote(typeStr) << '\n';
     }
 
     outFile.close();
