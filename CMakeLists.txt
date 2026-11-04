@@ -37,19 +37,23 @@ add_executable(expense_tracker
     src/ExpenseManager.cpp
 )
 
-# Find and link Conan-managed packages
-# CMakeDeps generator creates <PackageName>Config.cmake or Find<PackageName>.cmake
-# For example, for fmt, date, fast-cpp-csv-parser
-find_package(fmt REQUIRED)
-find_package(date REQUIRED) # The 'date' library by Howard Hinnant
-find_package(csv REQUIRED) # Trying 'csv' for fast-cpp-csv-parser
-
-# Link libraries
-target_link_libraries(expense_tracker PRIVATE
-    fmt::fmt          # fmt target name is often fmt::fmt
-    date::date        # date target name is often date::date or date::date-tz
-    csv::csv          # Trying 'csv::csv' for fast-cpp-csv-parser
-)
+# Optional source-header mode for an isolated verification/development runtime.
+# Default Conan package discovery remains unchanged.
+set(EXPENSE_HEADER_ROOT "" CACHE PATH "Optional prefix containing actual dependency headers")
+if(EXPENSE_HEADER_ROOT)
+    find_path(EXPENSE_FMT_INCLUDE fmt/core.h PATHS "${EXPENSE_HEADER_ROOT}/include" NO_DEFAULT_PATH REQUIRED)
+    find_path(EXPENSE_DATE_INCLUDE date/date.h PATHS "${EXPENSE_HEADER_ROOT}/include" NO_DEFAULT_PATH REQUIRED)
+    find_path(EXPENSE_CSV_INCLUDE csv.h PATHS "${EXPENSE_HEADER_ROOT}/include" "${EXPENSE_HEADER_ROOT}/include/libfccp" NO_DEFAULT_PATH REQUIRED)
+    find_package(Threads REQUIRED)
+    target_include_directories(expense_tracker PRIVATE ${EXPENSE_FMT_INCLUDE} ${EXPENSE_DATE_INCLUDE} ${EXPENSE_CSV_INCLUDE})
+    target_compile_definitions(expense_tracker PRIVATE FMT_HEADER_ONLY)
+    target_link_libraries(expense_tracker PRIVATE Threads::Threads)
+else()
+    find_package(fmt REQUIRED)
+    find_package(date REQUIRED)
+    find_package(csv REQUIRED)
+    target_link_libraries(expense_tracker PRIVATE fmt::fmt date::date csv::csv)
+endif()
 
 # Installation (Optional, but good practice)
 # install(TARGETS expense_tracker DESTINATION bin)

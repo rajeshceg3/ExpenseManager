@@ -1,0 +1,9 @@
+# CSV save/load and failure preservation
+## Sub-features
+Save5columnCSV,loadreplaceoncompletesuccess,quotedcomma/doublequotes,malformed/missingfailurepreservesinmemoryrecords.
+## How to get to it (user POV)
+Main4save/5load,data/expenses.csv inprocesscwd. Createfreshdata directoryforproof. Noautosave/autoload.
+## Driving it with verify.py
+AddquotedLunch/category,saveinspectCSVviaindependentcsvreader,loadandviewexacttext. Rewriteonlyownedfixturewithbadnumericfield,loadmustfailandbothrecordsremain;deleteownedfixture,missingloadfailsandLunchremains.
+## Gotchas
+Originalquotedwriterdidnotescapequotes/defaultCSVreaderignoredquotes;roundtripfailedandclearedrecords. Realfailuretestedbeforerepair. Nowdoublequoteescapeandstagedvector/swapaftercompleteparse. Multilinefields/invaliddate-rowpolicy,writeatomicity/corruption/concurrentaccessnotcertified. MissingmanualLoadnowhonestlyfalse,notmisleadingfirst-runsuccess. Missingdata/savelimitsunverified,notpaperedover.
