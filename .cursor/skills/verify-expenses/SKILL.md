@@ -1,20 +1,20 @@
 ---
 name: verify-expenses
-description: Drive ExpenseManager's real C++ terminal menus in a PTY, verify quoted CSV persistence and failure-state preservation, summaries, deletion and EOF cleanup.
+description: Build the ExpenseManager C++ CLI with conan+cmake and verify add, view, monthly summarize, save and load round-trip against data/expenses.csv.
 ---
-# Verify Expense Manager
+# ExpenseManager CLI verification
+
 ## Launch
-Interactive C++17CLI src/main.cpp plusExpense/ExpenseManager; data/expenses.csv relative to currentdirectory, noexternalAPI/auth. Neverrunagainstuser'sdata. Usefreshcwdwithdata/ eachtime. NativeCMake defaultsConanpinsfmt10.2.1/date3.0.1/fast-cpp-csv-parser0.1.3. Optional EXPENSE_HEADER_ROOT enablesactualdependencyheader mode FMT_HEADER_ONLY/Threads withfind_path, notstubs. ExecutedproofusesprivateunpackedUbuntu fmt8.1.1/date3.0.1/libfccp2016headers; exactConanpins/Conanpackage discoveryremainunverified. Do notcallthatdefaultbuildPASS.
-Python3/pexpect,cmake,g++required. Example isolateddependencies: unpack libfmt-dev/libhowardhinnant-date-dev/libfccp-dev into ownprefix; no globalsysteminstall. HelperbuildsrealCMake/sourceinownedtempdir and launchesrealbinaryinuniquePTY/data directory. No existing expenses overwritten.
+Toolchain: C++17 compiler, cmake 3.15+, conan 2 (`pip install --user conan`). Setup: `conan profile detect --force`, `conan install . --build=missing -of build`, `cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release`, `cmake --build build -j4`. Binary: `build/expense_tracker` (interactive menu on stdin/stdout).
+
 ## Doctor
-`python3 .cursor/skills/verify-expenses/helpers/verify.py doctor --headers /tmp/expense-runtime/usr --out .verification-evidence/expenses`
-Checks actualheaders/compiler/CMake. Pythonpexpectmustbeinstalled inyourruntime. Substituteactualprefixcontaininginclude/fmt,include/date andinclude/csv.h orinclude/libfccp/csv.h.
-## Drive
-`python3 .cursor/skills/verify-expenses/helpers/verify.py drive --headers /tmp/expense-runtime/usr --out .verification-evidence/expenses`
-RealPTY: emptyview,2adds,quotedcomma/doublequoteCSVsave/load/view, malformedandmissingloadpreservescurrentrecords,day/month/year/inclusiverange/reversedrange,invalid+validdelete,CSVrows,exit0. SeparateactualEOFinputmustexit1notspin. Filefixturechangesoccuronlyinownedcwd atordinarypersistenceboundary; nointernalsetters.
+`python3 .cursor/skills/verify-expenses/verify.py` (stdlib only). Drives the real binary: adds two expenses, views all, summarizes 2026-11 by month, saves, then reloads in a second process and re-views. Asserts every marker and the CSV round-trip in data/expenses.csv. Prints PASS/FAIL lines and FAILURES=0, exit 0 on green. Removes its test CSV afterwards.
+
 ## Evidence
-out/build.log,pty.log,saved.csv,doctor.json,drive.json survivecleanup. Inspectactualtranscript/CSV, notjustexit. SavedfixtureisfabricatedLunch/Train,notuserfinancialdata. No financialadvice. Thisdoesnotcertifyinvalidcalendardates/trailingdatejunk/nonfiniteamounts/multilineCSV/precision/security/concurrentwrites/crashatomicity. Thoseareremainingproductlimits.
+Run output + the transient data/expenses.csv (3 rows: header + two expenses).
+
 ## Cleanup
-Helpercloses/reapsownedPTYevenfailure; uniquebuild/data removed,proofoutside retained. Gitstatusmustremainunchangedduringdrive. Neverdeleteexistingdata/runproductfromrepo data/ or usekillbyname.
-## Helpers
-Executablehelpers/verify.py usesPythonstdlib+pexpectandactualCMakeCLI. No externalnetwork. Featuremapfeatures/README.md. Use /maintain-verification-skill whenchangingmenus/persistence.
+verify.py deletes data/expenses.csv it created. build/ and CMakeUserPresets.json are local artifacts, not committed.
+
+## Known boundaries
+First build compiles conan deps from source when binaries are missing (fmt/date/fast-cpp-csv-parser plus openssl/libcurl for date's tz download); allow several minutes. No unit-test suite, no date-validation beyond sscanf, no hosted/CI claim. Delete flow and day/year/range summaries are not covered by this runner.
