@@ -42,3 +42,6 @@
 
 .verification-evidence/
 __pycache__/
+build/
+CMakeUserPresets.json
+data/expenses.csv
